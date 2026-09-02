@@ -99,7 +99,5 @@ sqlplus system@localhost/XE
 ## Recomendaciones finales
 - Juntar junto a cada imagen una nota con los comandos exactos y el contexto (WSL2/Windows/Docker).
 - Mantener copia de las credenciales usadas en un lugar seguro (no dentro de la carpeta pública de evidencias).
-- Si se desea, puedo generar esos archivos de texto por cada imagen usando los metadatos que me des (fechas, comandos exactos). 
-
 ---
 Documento generado automáticamente y guardado en el proyecto.
