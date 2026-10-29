@@ -1,0 +1,90 @@
+@if (sale(); as s) {
+  <app-page-header [title]="'Venta #' + s.id" [subtitle]="'Registrada el ' + (s.saleDate | date:'medium')">
+    <app-status-tag [status]="s.status" />
+    <a pButton routerLink="/ventas" severity="secondary" outlined>
+      <i pButtonIcon class="pi pi-arrow-left"></i>
+      <span pButtonLabel>Volver a ventas</span>
+    </a>
+    @if (!isVoided()) {
+      <button pButton type="button" severity="danger" (click)="voidSale()">
+        <i pButtonIcon class="pi pi-ban"></i>
+        <span pButtonLabel>Anular venta</span>
+      </button>
+    }
+  </app-page-header>
+
+  <div class="grid gap-6 mb-6 sm:grid-cols-3">
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">Cliente / Pasajero</span>
+      <p class="text-lg font-semibold text-slate-800 mt-1">
+        {{ s.clientName || ('Cliente #' + s.client) }}
+      </p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">Resumen de Líneas</span>
+      <p class="text-lg font-semibold text-slate-800 mt-1">
+        {{ s.lines?.length || 0 }} líneas registradas
+      </p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">Total Facturado</span>
+      <p class="text-2xl font-bold text-slate-900 mt-1">
+        {{ s.total | currency:'USD':'symbol':'1.2-2' }}
+      </p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+    <h3 class="text-base font-semibold text-slate-800 mb-4">Líneas de la Venta</h3>
+    <p-table [value]="s.lines || []" tableStyleClass="min-w-full">
+      <ng-template #header>
+        <tr>
+          <th>Producto / Servicio</th>
+          <th class="text-right">Precio Unitario</th>
+          <th class="text-center">Cantidad</th>
+          <th class="text-right">Total Línea</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-line>
+        <tr>
+          <td>
+            <p class="font-medium text-slate-800">{{ line.productName || ('Producto #' + line.product) }}</p>
+          </td>
+          <td class="text-right text-slate-600">
+            {{ line.unitPrice | currency:'USD':'symbol':'1.2-2' }}
+          </td>
+          <td class="text-center font-semibold text-slate-800">
+            {{ line.quantity }}
+          </td>
+          <td class="text-right font-bold text-slate-900">
+            {{ line.lineTotal | currency:'USD':'symbol':'1.2-2' }}
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="4" class="text-center text-slate-400 py-4">
+            Esta venta no registra líneas de producto.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="flex flex-col items-end gap-1 border-t border-slate-100 pt-4 mt-4 text-sm">
+      <div class="text-slate-600">Subtotal: <span class="font-semibold text-slate-800">{{ s.subtotal | currency:'USD':'symbol':'1.2-2' }}</span></div>
+      <div class="text-slate-600">Impuestos: <span class="font-semibold text-slate-800">{{ s.tax | currency:'USD':'symbol':'1.2-2' }}</span></div>
+      <div class="text-slate-600">Descuentos: <span class="font-semibold text-slate-800">- {{ s.discounts | currency:'USD':'symbol':'1.2-2' }}</span></div>
+      <div class="text-xl font-bold text-slate-900 mt-1">Total: {{ s.total | currency:'USD':'symbol':'1.2-2' }}</div>
+    </div>
+  </div>
+} @else if (error()) {
+  <p-message severity="error" styleClass="w-full my-4">{{ error() }}</p-message>
+} @else {
+  <div class="p-8 text-center text-slate-500">Cargando detalle de venta…</div>
+}
+
+<p-confirmdialog />

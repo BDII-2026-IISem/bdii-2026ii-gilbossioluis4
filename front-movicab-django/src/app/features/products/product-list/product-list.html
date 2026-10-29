@@ -1,0 +1,106 @@
+<app-page-header title="Productos y Servicios" subtitle="Catálogo general de tarifas, repuestos y servicios.">
+  <p-tag [value]="rows().length + ' registros'" severity="info" [rounded]="true" />
+  <p-tag [value]="lowStockCount() + ' bajo el mínimo'" [severity]="lowStockCount() > 0 ? 'warn' : 'secondary'" [rounded]="true" />
+  <button pButton type="button" severity="secondary" outlined (click)="toggleAvailable()">
+    <i pButtonIcon [class]="onlyAvailable() ? 'pi pi-list' : 'pi pi-filter'"></i>
+    <span pButtonLabel>{{ onlyAvailable() ? 'Ver administración' : 'Solo disponibles' }}</span>
+  </button>
+  <button pButton type="button" (click)="openCreate()">
+    <i pButtonIcon class="pi pi-plus"></i><span pButtonLabel>Nuevo producto</span>
+  </button>
+</app-page-header>
+
+@if (error()) {
+  <p-message severity="error" styleClass="mb-4 w-full">{{ error() }}</p-message>
+}
+
+<p-table
+  [value]="visibleRows()"
+  [loading]="loading()"
+  dataKey="id"
+  tableStyleClass="min-w-3xl"
+  [paginator]="visibleRows().length > 10"
+  [rows]="10"
+>
+  <ng-template #caption>
+    <input
+      pInputText
+      type="search"
+      class="w-full"
+      aria-label="Buscar productos"
+      placeholder="Buscar por nombre, marca o categoría…"
+      [value]="filter()"
+      (input)="filter.set($any($event.target).value)"
+    />
+  </ng-template>
+
+  <ng-template #header>
+    <tr>
+      <th pSortableColumn="name">Producto / Servicio <p-sort-icon field="name" /></th>
+      <th pSortableColumn="productTypeName">Categoría <p-sort-icon field="productTypeName" /></th>
+      <th pSortableColumn="price">Precio <p-sort-icon field="price" /></th>
+      <th>Stock / Mínimo</th>
+      <th>Estado</th>
+      <th class="w-32 text-right">Acciones</th>
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-product>
+    <tr [class.bg-amber-50]="lowStock().has(product.id)">
+      <td>
+        <p class="font-medium text-slate-800">{{ product.name }}</p>
+        <p class="text-xs text-slate-400">{{ product.brand }} · #{{ product.id }}</p>
+      </td>
+      <td>
+        <p-tag [value]="product.productTypeName || 'Sin tipo'" severity="secondary" [rounded]="true" />
+      </td>
+      <td>
+        <p class="font-semibold text-slate-900">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</p>
+      </td>
+      <td>
+        <span [class]="lowStock().has(product.id) ? 'text-amber-700 font-bold' : 'text-slate-700'">
+          {{ product.quantity }}
+        </span>
+        <span class="text-xs text-slate-400"> / {{ product.minStock }}</span>
+      </td>
+      <td><app-status-tag [status]="product.status" /></td>
+      <td class="text-right">
+        <button pButton type="button" text rounded severity="secondary" icon="pi pi-pencil" aria-label="Editar producto" pTooltip="Editar" (click)="openEdit(product)"></button>
+        <button pButton type="button" text rounded severity="danger" icon="pi pi-trash" aria-label="Dar de baja producto" pTooltip="Desactivar" [disabled]="product.status === 'inactive'" (click)="remove(product)"></button>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="6">
+        @if (filter()) {
+          <app-empty-state icon="pi pi-search" title="Sin coincidencias" message="Ningún producto coincide con el filtro." />
+        } @else {
+          <app-empty-state icon="pi pi-box" title="Sin productos" message="No se encontraron productos registrados o disponibles." />
+        }
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [header]="editing() ? 'Editar producto' : 'Nuevo producto'"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-2xl mx-4"
+>
+  <app-product-form
+    [product]="editing()"
+    [productTypes]="productTypes()"
+    [saving]="saving()"
+    [resetKey]="resetKey()"
+    (saved)="save($event)"
+    (cancelled)="dialogVisible.set(false)"
+  />
+</p-dialog>
+
+<p-confirmdialog />

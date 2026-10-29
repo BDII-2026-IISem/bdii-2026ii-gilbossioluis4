@@ -1,0 +1,41 @@
+<div class="p-6 max-w-2xl mx-auto space-y-6 ejemplo-alcance">
+  <p-card header="Demostración de Signals — Angular 22">
+    <div class="space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">{{ producto().nombre }}</h2>
+          <p class="text-sm text-slate-500">ID: {{ producto().id }}</p>
+        </div>
+        <p-tag [value]="producto().activo ? 'Activo' : 'Inactivo'" [severity]="producto().activo ? 'success' : 'danger'" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
+        <div>
+          <span class="text-xs text-slate-500 uppercase tracking-wider block">Precio base</span>
+          <span class="text-2xl font-bold text-slate-900">${{ producto().precio }}</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-500 uppercase tracking-wider block">Con IVA (19%)</span>
+          <span class="text-2xl font-bold text-indigo-600">${{ precioFinal() }}</span>
+        </div>
+      </div>
+
+      <div class="p-3 rounded border" [ngClass]="producto().activo ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'">
+        <p class="text-sm font-medium">{{ estadoTexto() }}</p>
+      </div>
+
+      <div class="space-y-2">
+        <label for="nombre-input" class="block text-sm font-medium text-slate-700">Modificar nombre:</label>
+        <input id="nombre-input" pInputText [ngModel]="producto().nombre" (ngModelChange)="actualizarNombre($event)" class="w-full" />
+        <p class="text-xs text-slate-500">Vista previa: {{ producto().nombre }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-2">
+        <p-button label="+1000" (onClick)="variarPrecio(1000)" severity="secondary" size="small" />
+        <p-button label="-1000" (onClick)="variarPrecio(-1000)" severity="secondary" size="small" />
+        <p-button [label]="producto().activo ? 'Desactivar' : 'Activar'" (onClick)="conmutarEstado()" [severity]="producto().activo ? 'warn' : 'success'" size="small" />
+        <p-button label="Reiniciar" (onClick)="reiniciar()" severity="contrast" size="small" />
+      </div>
+    </div>
+  </p-card>
+</div>

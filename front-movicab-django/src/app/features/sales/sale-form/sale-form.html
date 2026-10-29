@@ -1,0 +1,136 @@
+<div class="flex flex-col gap-4">
+  @if (serverError()) {
+    <p-message severity="error" styleClass="w-full">{{ serverError() }}</p-message>
+  }
+  @if (draftError()) {
+    <p-message severity="warn" styleClass="w-full">{{ draftError() }}</p-message>
+  }
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="flex flex-col gap-2">
+      <label for="sale-client">Cliente / Pasajero <span class="text-red-500">*</span></label>
+      <p-select
+        id="sale-client"
+        [options]="clients()"
+        optionLabel="name"
+        optionValue="id"
+        placeholder="Selecciona un cliente activo"
+        [ngModel]="clientId()"
+        (ngModelChange)="clientId.set($event)"
+        appendTo="body"
+        class="w-full"
+      />
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label for="sale-discounts">Descuento ($)</label>
+      <p-inputnumber
+        id="sale-discounts"
+        [ngModel]="discounts()"
+        (ngModelChange)="discounts.set($event)"
+        mode="decimal"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        [min]="0"
+        class="w-full"
+      />
+    </div>
+  </div>
+
+  <div class="border-t border-slate-200 pt-4 mt-2">
+    <h3 class="text-sm font-semibold text-slate-800 mb-3">Agregar Productos / Servicios</h3>
+    <div class="grid gap-3 sm:grid-cols-12 items-end">
+      <div class="sm:col-span-7 flex flex-col gap-1">
+        <label for="sale-product" class="text-xs text-slate-600">Producto / Servicio</label>
+        <p-select
+          id="sale-product"
+          [options]="products()"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Selecciona un producto disponible"
+          [ngModel]="selectedProductId()"
+          (ngModelChange)="selectedProductId.set($event)"
+          appendTo="body"
+          class="w-full"
+        />
+      </div>
+
+      <div class="sm:col-span-3 flex flex-col gap-1">
+        <label for="sale-quantity" class="text-xs text-slate-600">Cantidad</label>
+        <p-inputnumber
+          id="sale-quantity"
+          [ngModel]="selectedQuantity()"
+          (ngModelChange)="selectedQuantity.set($event)"
+          [min]="1"
+          class="w-full"
+        />
+      </div>
+
+      <div class="sm:col-span-2">
+        <button pButton type="button" class="w-full" severity="secondary" (click)="addLine()">
+          <i pButtonIcon class="pi pi-plus"></i>
+          <span pButtonLabel>Agregar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-2">
+    <p-table [value]="lines()" tableStyleClass="min-w-full">
+      <ng-template #header>
+        <tr>
+          <th>Producto / Servicio</th>
+          <th class="text-right">P. Unitario</th>
+          <th class="text-center">Cant.</th>
+          <th class="text-right">Subtotal</th>
+          <th class="w-16"></th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-line>
+        <tr>
+          <td class="font-medium text-slate-800">{{ line.productName }}</td>
+          <td class="text-right text-slate-600">{{ line.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+          <td class="text-center">{{ line.quantity }}</td>
+          <td class="text-right font-medium text-slate-900">{{ line.lineTotal | currency:'USD':'symbol':'1.2-2' }}</td>
+          <td class="text-right">
+            <button
+              pButton
+              type="button"
+              text
+              rounded
+              severity="danger"
+              icon="pi pi-trash"
+              aria-label="Quitar línea"
+              (click)="removeLine(line.productId)"
+            ></button>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="5" class="text-center text-slate-400 py-4">
+            No has agregado productos a esta venta.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="flex flex-col items-end gap-1 border-t border-slate-200 pt-3 text-sm">
+    <div class="text-slate-600">Subtotal líneas: <span class="font-semibold text-slate-800">{{ subtotal() | currency:'USD':'symbol':'1.2-2' }}</span></div>
+    <div class="text-slate-600">Descuento: <span class="font-semibold text-slate-800">- {{ (discounts() || 0) | currency:'USD':'symbol':'1.2-2' }}</span></div>
+    <div class="text-base font-bold text-slate-900">Total preliminar: {{ previewTotal() | currency:'USD':'symbol':'1.2-2' }}</div>
+  </div>
+
+  <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-2">
+    <button pButton type="button" severity="secondary" outlined (click)="cancelled.emit()">
+      <span pButtonLabel>Cancelar</span>
+    </button>
+    <button pButton type="button" [loading]="saving()" (click)="submit()">
+      <i pButtonIcon class="pi pi-check"></i>
+      <span pButtonLabel>Registrar venta</span>
+    </button>
+  </div>
+</div>

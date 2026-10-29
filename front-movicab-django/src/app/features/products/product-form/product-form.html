@@ -1,0 +1,82 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-4">
+  <div class="flex flex-col gap-2">
+    <label for="product-type">Tipo de producto / Categoría <span class="text-red-500">*</span></label>
+    <p-select
+      id="product-type"
+      formControlName="productTypeId"
+      [options]="productTypes()"
+      optionLabel="name"
+      optionValue="id"
+      placeholder="Selecciona una categoría activa"
+      appendTo="body"
+      class="w-full"
+    />
+    @if (form.controls.productTypeId.touched && form.controls.productTypeId.invalid) {
+      <p-message severity="error" size="small" variant="simple">
+        Debes seleccionar una categoría activa.
+      </p-message>
+    }
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="flex flex-col gap-2">
+      <label for="product-name">Nombre <span class="text-red-500">*</span></label>
+      <input id="product-name" pInputText formControlName="name" class="w-full" placeholder="Ej. Carrera Urbana / Servicio Preferencial" />
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <p-message severity="error" size="small" variant="simple">
+          El nombre es obligatorio (entre 2 y 120 caracteres).
+        </p-message>
+      }
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label for="product-brand">Marca / Referencia <span class="text-red-500">*</span></label>
+      <input id="product-brand" pInputText formControlName="brand" class="w-full" placeholder="Ej. MoviCab / Estándar" />
+      @if (form.controls.brand.touched && form.controls.brand.invalid) {
+        <p-message severity="error" size="small" variant="simple">
+          La marca es obligatoria (máximo 80 caracteres).
+        </p-message>
+      }
+    </div>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="flex flex-col gap-2">
+      <label for="product-price">Precio ($) <span class="text-red-500">*</span></label>
+      <p-inputnumber
+        id="product-price"
+        formControlName="price"
+        mode="decimal"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        [min]="0.01"
+        class="w-full"
+      />
+      @if (form.controls.price.touched && form.controls.price.invalid) {
+        <p-message severity="error" size="small" variant="simple">
+          El precio mínimo es $0.01.
+        </p-message>
+      }
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label for="product-quantity">Existencia Actual</label>
+      <p-inputnumber id="product-quantity" formControlName="quantity" [min]="0" class="w-full" />
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label for="product-min-stock">Stock Mínimo</label>
+      <p-inputnumber id="product-min-stock" formControlName="minStock" [min]="0" class="w-full" />
+    </div>
+  </div>
+
+  <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+    <button pButton type="button" severity="secondary" outlined (click)="cancelled.emit()">
+      <span pButtonLabel>Cancelar</span>
+    </button>
+    <button pButton type="submit" [loading]="saving()">
+      <i pButtonIcon class="pi pi-check"></i>
+      <span pButtonLabel>Guardar</span>
+    </button>
+  </div>
+</form>

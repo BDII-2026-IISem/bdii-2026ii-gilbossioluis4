@@ -1,0 +1,72 @@
+<app-page-header title="Líneas de Venta" subtitle="Detalle aplanado de todos los productos y servicios facturados.">
+  <p-tag [value]="totalUnits() + ' unidades vendidas'" severity="info" [rounded]="true" />
+</app-page-header>
+
+@if (error()) {
+  <p-message severity="error" styleClass="mb-4 w-full">{{ error() }}</p-message>
+}
+
+<p-table
+  [value]="visibleRows()"
+  [loading]="loading()"
+  dataKey="id"
+  tableStyleClass="min-w-3xl"
+  [paginator]="visibleRows().length > 10"
+  [rows]="10"
+>
+  <ng-template #caption>
+    <input
+      pInputText
+      type="search"
+      class="w-full"
+      aria-label="Buscar líneas de venta"
+      placeholder="Buscar por ID de venta, producto o precio…"
+      [value]="filter()"
+      (input)="filter.set($any($event.target).value)"
+    />
+  </ng-template>
+
+  <ng-template #header>
+    <tr>
+      <th>Nº Venta</th>
+      <th>Producto / Servicio</th>
+      <th class="text-center">Cantidad</th>
+      <th class="text-right">Precio Unitario</th>
+      <th class="text-right">Total Línea</th>
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-item>
+    <tr>
+      <td>
+        <a [routerLink]="['/ventas', item.saleId]" class="font-bold text-blue-600 hover:underline">
+          #{{ item.saleId }}
+        </a>
+      </td>
+      <td>
+        <p class="font-medium text-slate-800">{{ item.productName || ('Producto #' + item.product) }}</p>
+      </td>
+      <td class="text-center font-semibold text-slate-800">
+        {{ item.quantity }}
+      </td>
+      <td class="text-right text-slate-600">
+        {{ item.unitPrice | currency:'USD':'symbol':'1.2-2' }}
+      </td>
+      <td class="text-right font-bold text-slate-900">
+        {{ item.lineTotal | currency:'USD':'symbol':'1.2-2' }}
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="5">
+        @if (filter()) {
+          <app-empty-state icon="pi pi-search" title="Sin coincidencias" message="Ninguna línea coincide con el filtro." />
+        } @else {
+          <app-empty-state icon="pi pi-list" title="Sin líneas registradas" message="No existen despachos registrados en el sistema." />
+        }
+      </td>
+    </tr>
+  </ng-template>
+</p-table>

@@ -1,0 +1,82 @@
+<app-page-header title="Panel de Control" subtitle="Métricas y estado general de operaciones del día.">
+  <button pButton type="button" severity="secondary" outlined (click)="load()">
+    <i pButtonIcon class="pi pi-refresh"></i>
+    <span pButtonLabel>Recargar</span>
+  </button>
+</app-page-header>
+
+@if (error()) {
+  <p-message severity="error" styleClass="mb-4 w-full">{{ error() }}</p-message>
+}
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+  <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Ventas de Hoy</span>
+    <p class="text-3xl font-bold text-slate-900">{{ todaySales().length }}</p>
+    <span class="text-xs text-slate-400">{{ sales().length }} ventas en total</span>
+  </div>
+
+  <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total de Hoy</span>
+    <p class="text-3xl font-bold text-emerald-600">{{ todayTotal() | currency:'USD':'symbol':'1.2-2' }}</p>
+    <span class="text-xs text-slate-400">Ingresos vigentes de hoy</span>
+  </div>
+
+  <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Bajo el Mínimo</span>
+    <p class="text-3xl font-bold" [class]="lowStockProducts().length > 0 ? 'text-amber-600' : 'text-slate-900'">
+      {{ lowStockProducts().length }}
+    </p>
+    <span class="text-xs text-slate-400">Productos que requieren reabastecer</span>
+  </div>
+
+  <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Clientes Activos</span>
+    <p class="text-3xl font-bold text-slate-900">{{ activeClientsCount() }}</p>
+    <span class="text-xs text-slate-400">Pasajeros habilitados</span>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <h3 class="text-base font-semibold text-slate-800 mb-4">Productos con Inventario Crítico</h3>
+  <p-table [value]="lowStockProducts()" tableStyleClass="min-w-full">
+    <ng-template #header>
+      <tr>
+        <th>Producto / Servicio</th>
+        <th>Categoría</th>
+        <th class="text-right">Precio</th>
+        <th class="text-center">Existencia / Mínimo</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-product>
+      <tr class="bg-amber-50">
+        <td>
+          <p class="font-medium text-slate-800">{{ product.name }}</p>
+          <p class="text-xs text-slate-400">{{ product.brand }}</p>
+        </td>
+        <td>
+          <p-tag [value]="product.productTypeName || 'Sin tipo'" severity="secondary" [rounded]="true" />
+        </td>
+        <td class="text-right font-semibold text-slate-800">
+          {{ product.price | currency:'USD':'symbol':'1.2-2' }}
+        </td>
+        <td class="text-center font-bold text-amber-700">
+          {{ product.quantity }} <span class="text-xs text-slate-400 font-normal">/ {{ product.minStock }}</span>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="4">
+          <app-empty-state
+            icon="pi pi-check-circle"
+            title="Inventario sin alertas"
+            message="Ningún producto activo está bajo el mínimo."
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
