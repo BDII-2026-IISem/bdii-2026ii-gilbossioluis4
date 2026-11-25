@@ -65,7 +65,7 @@ export class Login {
   }
 
   private returnUrl(): string {
-    const requested = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
-    return requested.startsWith('/') && !requested.startsWith('/login') ? requested : '/dashboard';
+    const requested = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/pasajeros';
+    return requested.startsWith('/') && !requested.startsWith('/login') ? requested : '/pasajeros';
   }
 }

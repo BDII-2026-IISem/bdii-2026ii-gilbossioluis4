@@ -1,12 +1,20 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { EffectivePermission, SessionUser, TokenPair } from '../models/auth.model';
 
-const STORAGE_KEY = 'storelab.session.v1';
+const STORAGE_KEY = 'movicab.session.v1';
 
 function samePath(pattern: string, path: string): boolean {
-  const trim = (value: string) => value.split('?')[0].replace(/(.)\/+$/, '$1');
-  const body = trim(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\/:[^/]+/g, '/[^/]+');
-  return new RegExp(`^${body}$`).test(trim(path));
+  const segments = (value: string) =>
+    value
+      .split('?')[0]
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => (/^<[^>]+>$|^:[^/]+$/.test(segment) ? '*' : segment));
+  const expected = segments(pattern);
+  const actual = segments(path);
+  return expected.length === actual.length && expected.every(
+    (segment, index) => segment === '*' || actual[index] === '*' || segment === actual[index]
+  );
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +31,11 @@ export class SessionStore {
 
   readonly isAuthenticated = computed(() => this._accessToken() !== null);
   readonly permissionCount = computed(() => this._permissions().length);
-  readonly roles = computed(() => [...new Set(this._permissions().map((p) => p.roleName))].sort());
+  readonly roles = computed(() => [
+    ...new Set(this._permissions().map((permission) => permission.roleName).filter(
+      (roleName): roleName is string => roleName !== null,
+    )),
+  ].sort());
 
   constructor() {
     this.restore();
@@ -66,6 +78,7 @@ export class SessionStore {
 
   private restore(): void {
     try {
+      if (typeof localStorage === 'undefined') return;
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         return;
@@ -97,6 +110,7 @@ export class SessionStore {
       permissions: this._permissions(),
     });
     try {
+      if (typeof localStorage === 'undefined') return;
       localStorage.setItem(STORAGE_KEY, raw);
     } catch {
       /* cuota llena */

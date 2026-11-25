@@ -1,69 +1,92 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { Observable, catchError, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { EffectivePermission, LoginRequest, ProfileUpdatePayload, SessionUser, TokenPair } from '../models/auth.model';
+import { SessionStore } from './session-store';
 
-export interface LoginRequest {
-  username?: string;
-  password?: string;
+interface LoginResponse {
+  access: string;
+  refresh: string;
+  token_type: 'Bearer';
+  access_expires_in: number;
 }
 
-export interface SessionUser {
-  id?: number;
-  username: string;
-  email?: string;
-  role?: string;
+interface PermissionResponse {
+  permissions: EffectivePermission[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly session = inject(SessionStore);
   private readonly base = `${environment.apiUrl}/auth`;
 
   readonly currentUser = signal<SessionUser | null>(null);
 
-  login(credentials: LoginRequest): Observable<any> {
-    return this.http.post<{ access: string; refresh: string }>(`${this.base}/login/`, credentials).pipe(
-      tap((res) => {
-        if (res.access) localStorage.setItem('access_token', res.access);
-        if (res.refresh) localStorage.setItem('refresh_token', res.refresh);
-        this.currentUser.set({ username: credentials.username || 'admin' });
-      })
+  login(credentials: LoginRequest): Observable<SessionUser> {
+    return this.http.post<LoginResponse>(`${this.base}/login/`, credentials).pipe(
+      tap((response) => this.session.setTokens(this.tokenPair(response))),
+      switchMap(() => this.me()),
+      tap((user) => this.currentUser.set(user)),
+      catchError((error: unknown) => {
+        this.session.clear();
+        this.currentUser.set(null);
+        return throwError(() => error);
+      }),
     );
   }
 
-  refresh(): Observable<any> {
-    const refreshToken = localStorage.getItem('refresh_token');
+  refresh(): Observable<TokenPair> {
+    const refreshToken = this.session.refreshToken();
     if (!refreshToken) return throwError(() => new Error('No refresh token'));
 
-    return this.http.post<{ access: string }>(`${this.base}/refresh/`, { refresh: refreshToken }).pipe(
-      tap((res) => {
-        if (res.access) localStorage.setItem('access_token', res.access);
-      })
+    return this.http.post<LoginResponse>(`${this.base}/refresh/`, { refresh: refreshToken }).pipe(
+      map((response) => this.tokenPair(response)),
+      tap((tokens) => this.session.setTokens(tokens)),
     );
   }
 
-  me(): Observable<SessionUser | null> {
-    const token = localStorage.getItem('access_token');
-    if (!token) return of(null);
-
-    const user: SessionUser = this.currentUser() || { username: 'admin' };
-    this.currentUser.set(user);
-    return of(user);
+  me(): Observable<SessionUser> {
+    return forkJoin({
+      user: this.http.get<SessionUser>(`${this.base}/profile/`),
+      response: this.http.get<PermissionResponse>(`${this.base}/permissions/`),
+    }).pipe(
+      map(({ user, response }) => ({ user, permissions: response.permissions })),
+      tap(({ user, permissions }) => {
+        this.session.setUser(user, permissions);
+        this.currentUser.set(user);
+      }),
+      map(({ user }) => user),
+    );
   }
 
-  logout(): Observable<any> {
-    const refreshToken = localStorage.getItem('refresh_token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+  updateProfile(payload: ProfileUpdatePayload): Observable<SessionUser> {
+    return this.http.patch<SessionUser>(`${this.base}/profile/`, payload).pipe(
+      tap((user) => {
+        this.session.setUser(user, this.session.permissions());
+        this.currentUser.set(user);
+      }),
+    );
+  }
+
+  logout(): Observable<void> {
+    const refreshToken = this.session.refreshToken();
+    this.session.clear();
     this.currentUser.set(null);
 
     if (refreshToken) {
-      return this.http.post(`${this.base}/logout/`, { refresh: refreshToken }).pipe(
-        catchError(() => of(null))
-      );
+      return this.http.post<void>(`${this.base}/logout/`, { refresh: refreshToken });
     }
-    return of(null);
+    return of(undefined);
+  }
+
+  private tokenPair(response: LoginResponse): TokenPair {
+    return {
+      access: response.access,
+      refresh: response.refresh,
+      tokenType: response.token_type,
+      accessExpiresIn: response.access_expires_in,
+    };
   }
 }

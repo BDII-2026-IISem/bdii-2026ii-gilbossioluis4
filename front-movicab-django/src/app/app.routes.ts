@@ -1,67 +1,54 @@
 import { Routes } from '@angular/router';
+import { adminRoleGuard, authGuard, guestGuard, permissionGuard } from './core/guards/auth.guard';
+import { DOMAIN_DEFINITIONS } from './features/domain/domain-config';
+
+const ADMIN_DOMAIN_PATHS = new Set([
+  'users',
+  'roles',
+  'role-users',
+  'resources',
+  'resource-roles',
+  'user-resource-permissions',
+]);
+
+const domainRoutes: Routes = Object.entries(DOMAIN_DEFINITIONS)
+  .filter(([path]) => path !== 'usuarios')
+  .map(([path, domain]) => ({
+    path,
+    title: `${domain.title} · MoviCab`,
+    canActivate: ADMIN_DOMAIN_PATHS.has(domain.path)
+      ? [adminRoleGuard, permissionGuard]
+      : [permissionGuard],
+    data: { domain, permission: `GET /api/${domain.path}/` },
+    loadComponent: () => import('./features/domain/domain-page').then((module) => module.DomainPage),
+  }));
 
 export const routes: Routes = [
   {
     path: 'login',
     title: 'Iniciar sesión · MoviCab',
+    canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
-    path: 'construir',
-    loadComponent: () => import('./features/construir/construir').then((m) => m.Construir),
-  },
-  {
     path: '',
+    canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.Shell),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'clientes' },
+      { path: '', pathMatch: 'full', redirectTo: 'pasajeros' },
       {
-        path: 'clientes',
-        title: 'Clientes · MoviCab',
+        path: 'forbidden',
+        title: 'Acceso denegado · MoviCab',
         loadComponent: () =>
-          import('./features/clients/client-list/client-list').then((m) => m.ClientList),
+          import('./features/auth/forbidden/forbidden').then((m) => m.Forbidden),
       },
+      ...domainRoutes,
       {
-        path: 'tipos-producto',
-        title: 'Tipos de producto · MoviCab',
-        loadComponent: () =>
-          import('./features/product-types/product-type-list/product-type-list').then(
-            (m) => m.ProductTypeList
-          ),
-      },
-      {
-        path: 'productos',
-        title: 'Productos · MoviCab',
-        loadComponent: () =>
-          import('./features/products/product-list/product-list').then(
-            (m) => m.ProductList
-          ),
-      },
-      {
-        path: 'ventas',
-        title: 'Ventas · MoviCab',
-        loadComponent: () =>
-          import('./features/sales/sale-list/sale-list').then((m) => m.SaleList),
-      },
-      {
-        path: 'ventas/:id',
-        title: 'Detalle de venta · MoviCab',
-        loadComponent: () =>
-          import('./features/sales/sale-detail/sale-detail').then((m) => m.SaleDetail),
-      },
-      {
-        path: 'detalle-ventas',
-        title: 'Líneas de venta · MoviCab',
-        loadComponent: () =>
-          import('./features/product-sales/product-sale-list/product-sale-list').then(
-            (m) => m.ProductSaleList
-          ),
-      },
-      {
-        path: 'dashboard',
-        title: 'Panel · MoviCab',
-        loadComponent: () =>
-          import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+        path: 'usuarios',
+        title: 'Usuarios y permisos · MoviCab',
+        canActivate: [adminRoleGuard, permissionGuard],
+        data: { permission: 'GET /api/users/' },
+        loadComponent: () => import('./features/security/security-admin').then((m) => m.SecurityAdmin),
       },
       {
         path: 'perfil',
@@ -71,5 +58,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'construir' },
+  { path: '**', redirectTo: 'pasajeros' },
 ];

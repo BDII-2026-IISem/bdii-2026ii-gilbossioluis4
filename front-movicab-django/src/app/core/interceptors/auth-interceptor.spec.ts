@@ -43,7 +43,12 @@ describe('authInterceptor', () => {
     const refresh = http.expectOne('http://localhost:8000/api/auth/refresh/');
     expect(refresh.request.body).toEqual({ refresh: 'r1' });
 
-    refresh.flush({ ...PAR, access: 'nuevo', refresh: 'r2' });
+    refresh.flush({
+      access: 'nuevo',
+      refresh: 'r2',
+      token_type: 'Bearer',
+      access_expires_in: 3600,
+    });
 
     const retried = http.match('http://localhost:8000/api/clients/');
     expect(retried.length).toBe(2);

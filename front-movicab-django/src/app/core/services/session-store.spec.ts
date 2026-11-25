@@ -19,10 +19,15 @@ describe('SessionStore', () => {
   it('should match :id, ignore the trailing slash and restore the session', () => {
     const store = TestBed.inject(SessionStore);
     store.setTokens(PAR);
-    store.setUser(USER, [PERMISO, { ...PERMISO, method: 'PATCH', path: '/api/clients/:id' }]);
+    store.setUser(USER, [
+      PERMISO,
+      { ...PERMISO, method: 'PATCH', path: '/api/clients/:id' },
+      { ...PERMISO, method: 'DELETE', path: '/api/pasajeros/<int:pk>/' },
+    ]);
 
     expect(store.canPermission('GET /api/clients')).toBe(true);
     expect(store.canPermission('PATCH /api/clients/7')).toBe(true);
+    expect(store.canPermission('DELETE /api/pasajeros/:id/')).toBe(true);
     expect(store.canPermission('DELETE /api/clients/7')).toBe(false);
     expect(store.roles()).toEqual(['ADMIN']);
 

@@ -1,0 +1,331 @@
+<div class="security-page">
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900">Administración RBAC</h1>
+      <p class="text-sm text-slate-500">Gestiona roles, usuarios, recursos y permisos de MoviCab.</p>
+    </div>
+    @if (activeTab() === 'users') {
+      <button pButton type="button" (click)="openCreate()">
+        <i pButtonIcon class="pi pi-plus"></i><span pButtonLabel>Nuevo usuario</span>
+      </button>
+    }
+    @if (activeTab() === 'roles') {
+      <button pButton type="button" (click)="startNewRole()">
+        <i pButtonIcon class="pi pi-plus"></i><span pButtonLabel>Nuevo rol</span>
+      </button>
+    }
+  </div>
+
+  <nav class="mb-5 flex flex-wrap gap-2 border-b border-slate-200" aria-label="Secciones de administración RBAC">
+    <button type="button" class="border-b-2 px-4 py-3 text-sm font-medium"
+      [class.border-teal-700]="activeTab() === 'roles'" [class.text-teal-800]="activeTab() === 'roles'"
+      [class.border-transparent]="activeTab() !== 'roles'" [class.text-slate-600]="activeTab() !== 'roles'"
+      (click)="activeTab.set('roles')">Roles y permisos</button>
+    <button type="button" class="border-b-2 px-4 py-3 text-sm font-medium"
+      [class.border-teal-700]="activeTab() === 'users'" [class.text-teal-800]="activeTab() === 'users'"
+      [class.border-transparent]="activeTab() !== 'users'" [class.text-slate-600]="activeTab() !== 'users'"
+      (click)="activeTab.set('users')">Usuarios</button>
+    <button type="button" class="border-b-2 px-4 py-3 text-sm font-medium"
+      [class.border-teal-700]="activeTab() === 'resources'" [class.text-teal-800]="activeTab() === 'resources'"
+      [class.border-transparent]="activeTab() !== 'resources'" [class.text-slate-600]="activeTab() !== 'resources'"
+      (click)="activeTab.set('resources')">Recursos</button>
+  </nav>
+
+  @if (error()) { <p-message severity="error" styleClass="mb-4 w-full">{{ error() }}</p-message> }
+  @if (loading()) { <p class="py-8 text-center text-slate-500">Cargando configuración de seguridad...</p> }
+  @else {
+    @if (activeTab() === 'roles') {
+      <div class="grid items-start gap-5 xl:grid-cols-[minmax(16rem,0.8fr)_minmax(0,2fr)]">
+        <section class="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 class="mb-3 text-lg font-semibold">Roles</h2>
+          <input class="security-control mb-3 w-full" type="search" aria-label="Buscar rol"
+            placeholder="Buscar rol..." [value]="roleFilter()" (input)="roleFilter.set($any($event.target).value)" />
+          <div class="grid gap-2">
+            @for (role of visibleRoles(); track role.id) {
+              <button type="button" class="rounded-lg border p-3 text-left"
+                [class.border-teal-600]="selectedRoleId() === role.id"
+                [class.bg-teal-50]="selectedRoleId() === role.id"
+                (click)="selectRole(role.id)">
+                <strong class="block">{{ role.name }}</strong>
+                <small class="text-slate-500">{{ role.description || 'Sin descripción' }}</small>
+              </button>
+            } @empty {
+              <p class="py-5 text-center text-sm text-slate-500">No hay roles activos que coincidan.</p>
+            }
+          </div>
+        </section>
+
+        <div class="grid gap-5">
+          <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold">{{ activeRole() ? 'Editar rol' : 'Crear rol' }}</h2>
+                <p class="text-sm text-slate-500">Define la identidad y descripción del perfil de acceso.</p>
+              </div>
+              @if (activeRole() && activeRole()?.name?.toUpperCase() !== 'ADMIN') {
+                <button pButton type="button" text severity="danger" [disabled]="saving()" (click)="deleteSelectedRole()">
+                  <i pButtonIcon class="pi pi-trash"></i><span pButtonLabel>Desactivar rol</span>
+                </button>
+              }
+            </div>
+            <form [formGroup]="roleForm" (ngSubmit)="saveRole()" class="grid gap-4 md:grid-cols-2">
+              <label class="grid gap-2 text-sm font-medium">Nombre
+                <input class="security-control" formControlName="name" [readonly]="activeRole()?.name?.toUpperCase() === 'ADMIN'" />
+              </label>
+              <label class="grid gap-2 text-sm font-medium">Descripción
+                <input class="security-control" formControlName="description" />
+              </label>
+              <div class="flex justify-end md:col-span-2">
+                <button pButton type="submit" [disabled]="saving() || roleForm.invalid">
+                  <span pButtonLabel>{{ saving() ? 'Guardando...' : activeRole() ? 'Guardar cambios' : 'Crear rol' }}</span>
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold">Usuarios asignados</h2>
+                <p class="text-sm text-slate-500">Asigna usuarios activos a {{ activeRole()?.name || 'este rol' }}.</p>
+              </div>
+              <div class="flex gap-2">
+                <select class="security-control" aria-label="Seleccionar usuario para asignar"
+                  [value]="selectedUserForRole() ?? ''"
+                  (change)="selectedUserForRole.set($any($event.target).value ? +$any($event.target).value : null)">
+                  <option value="">Seleccionar usuario...</option>
+                  @for (user of availableUsersForRole(); track user.id) {
+                    <option [value]="user.id">{{ user.username }}</option>
+                  }
+                </select>
+                <button pButton type="button" [disabled]="!selectedRoleId() || !selectedUserForRole() || saving()"
+                  (click)="assignUserToRole()"><i pButtonIcon class="pi pi-user-plus"></i><span pButtonLabel>Asignar</span></button>
+              </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-600"><tr><th class="px-3 py-2">Usuario</th><th class="px-3 py-2">Correo</th><th class="px-3 py-2">Acción</th></tr></thead>
+                <tbody>
+                  @for (assignment of selectedRoleAssignments(); track assignment.id) {
+                    @if (userById(assignment.user); as user) {
+                      <tr class="border-t border-slate-100">
+                        <td class="px-3 py-2 font-medium">{{ user.username }}</td><td class="px-3 py-2">{{ user.email }}</td>
+                        <td class="px-3 py-2">
+                          <button pButton type="button" text severity="danger" size="small"
+                            [disabled]="saving() || !canRemoveRoleAssignment(assignment)"
+                            [attr.aria-label]="'Quitar rol a ' + user.username"
+                            (click)="removeUserFromRole(assignment)"><i pButtonIcon class="pi pi-times"></i><span pButtonLabel>Quitar</span></button>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr><td class="px-3 py-5 text-center text-slate-500" colspan="3">No hay usuarios asignados a este rol.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (activeRole()?.name?.toUpperCase() === 'ADMIN') {
+              <p class="mt-3 text-xs text-amber-700">La última asignación activa del rol ADMIN no se puede retirar.</p>
+            }
+          </section>
+
+          <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold">Permisos CRUD</h2>
+                <p class="text-sm text-slate-500">Los permisos del rol se aplican a todos los usuarios asignados.</p>
+              </div>
+              <div class="flex gap-2">
+                <button pButton type="button" outlined size="small" [disabled]="!activeRole() || savingPermissions()" (click)="markAllRolePermissions(true)">Marcar todo</button>
+                <button pButton type="button" outlined severity="secondary" size="small" [disabled]="!activeRole() || savingPermissions()" (click)="markAllRolePermissions(false)">Desmarcar todo</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+              <table class="w-full min-w-[42rem] text-sm">
+                <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">Recurso</th>
+                  @for (action of crudActions; track action.method) { <th class="px-3 py-2 text-center">{{ action.label }}</th> }
+                </tr></thead>
+                <tbody>
+                  @for (group of groupedResources(); track group.route) {
+                    <tr class="border-t border-slate-100">
+                      <td class="px-3 py-2"><strong>{{ group.name }}</strong><small class="block text-slate-500">{{ group.route }}</small></td>
+                      @for (action of crudActions; track action.method) {
+                        <td class="px-3 py-2 text-center">
+                          @if (hasUserPermissionResource(group.resources, action.method)) {
+                            <input type="checkbox" class="h-4 w-4 accent-teal-700"
+                              [attr.aria-label]="action.label + ' ' + group.name + ' para ' + (activeRole()?.name || 'nuevo rol')"
+                              [checked]="rolePermissionState(group.resources, action.method) === 'all'"
+                              [indeterminate]="rolePermissionState(group.resources, action.method) === 'some'"
+                              [disabled]="!activeRole() || savingPermissions() || isProtectedAdminResource(group.resources)"
+                              (change)="setRolePermission(group.resources, action.method, $any($event.target).checked)" />
+                          }
+                        </td>
+                      }
+                    </tr>
+                  } @empty {
+                    <tr><td class="px-3 py-6 text-center text-slate-500" colspan="5">No hay recursos activos.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (activeRole()?.name?.toUpperCase() === 'ADMIN') {
+              <p class="mt-3 text-xs text-amber-700">Los permisos del ADMIN sobre la administración RBAC están protegidos para evitar perder el acceso.</p>
+            }
+          </section>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'users') {
+      <div class="mb-3 flex flex-wrap gap-3">
+        <input class="security-control min-w-56 flex-1" type="search" aria-label="Buscar usuario por nombre"
+          placeholder="Buscar usuario o correo..." [value]="userFilter()" (input)="userFilter.set($any($event.target).value)" />
+        <select class="security-control" aria-label="Filtrar usuarios por estado" [value]="userStatusFilter()"
+          (change)="userStatusFilter.set($any($event.target).value)">
+          <option value="all">Todos los estados</option><option value="active">Activos</option><option value="inactive">Inactivos</option>
+        </select>
+        <select class="security-control" aria-label="Ordenar usuarios por nombre" [value]="userSortOrder()"
+          (change)="userSortOrder.set($any($event.target).value)">
+          <option value="asc">Nombre: A–Z</option><option value="desc">Nombre: Z–A</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-xs uppercase text-slate-600">
+            <tr><th class="px-4 py-3">Usuario</th><th class="px-4 py-3">Correo</th><th class="px-4 py-3">Estado</th><th class="px-4 py-3">Roles</th><th class="px-4 py-3">Permisos directos</th></tr>
+          </thead>
+          <tbody>
+            @for (user of visibleUsers(); track user.id) {
+              <tr class="border-t border-slate-100" [class.bg-teal-50]="selectedUserId() === user.id">
+                <td class="px-4 py-3 font-medium">{{ user.username }}</td><td class="px-4 py-3">{{ user.email }}</td>
+                <td class="px-4 py-3">{{ user.status === 'active' ? 'Activo' : 'Inactivo' }}</td>
+                <td class="px-4 py-3">{{ roleCount(user.id) }}</td>
+                <td class="px-4 py-3"><button pButton type="button" text size="small" (click)="selectUser(user.id)">
+                  <span pButtonLabel>{{ selectedUserId() === user.id ? 'Seleccionado' : 'Configurar CRUD' }}</span>
+                </button></td>
+              </tr>
+            } @empty {
+              <tr><td class="px-4 py-6 text-center text-slate-500" colspan="5">No hay usuarios que coincidan con los filtros.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (selectedUser(); as user) {
+        <section class="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold">Roles de {{ user.username }}</h2>
+            <p class="text-sm text-slate-500">Selecciona los roles que debe tener este usuario.</p>
+          </div>
+          @if (user.status === 'active') {
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              @for (role of roles(); track role.id) {
+                <label class="flex cursor-pointer items-start gap-2 rounded-lg border p-3"
+                  [class.border-teal-500]="hasUserRole(user.id, role.id)">
+                  <input type="checkbox" class="mt-1 accent-teal-700"
+                    [attr.aria-label]="'Asignar rol ' + role.name + ' a ' + user.username"
+                    [checked]="hasUserRole(user.id, role.id)"
+                    [disabled]="saving() || (hasUserRole(user.id, role.id) && !canRemoveUserRole(user.id, role.id))"
+                    (change)="setUserRole(user.id, role.id, $any($event.target).checked)" />
+                  <span><strong class="block">{{ role.name }}</strong>
+                    <small class="text-slate-500">{{ role.description || 'Sin descripción' }}</small></span>
+                </label>
+              } @empty {
+                <p class="text-sm text-slate-500">No hay roles activos para asignar.</p>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-amber-700">Activa el usuario antes de cambiar sus roles.</p>
+          }
+          @if (isLastAdmin(user.id)) {
+            <p class="mt-3 text-xs text-amber-700">No se puede retirar el rol ADMIN al último administrador activo.</p>
+          }
+        </section>
+
+        <section class="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+          <div class="mb-4"><h2 class="text-lg font-semibold">Permisos CRUD directos de {{ user.username }}</h2>
+            <p class="text-sm text-slate-500">Se suman a los permisos heredados por roles.</p></div>
+          <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full min-w-[42rem] text-sm">
+              <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">Recurso</th>
+                @for (action of crudActions; track action.method) { <th class="px-3 py-2 text-center">{{ action.label }}</th> }
+              </tr></thead>
+              <tbody>
+                @for (group of userPermissionGroups(); track group.route) {
+                  <tr class="border-t border-slate-100"><td class="px-3 py-2"><strong>{{ group.name }}</strong><small class="block text-slate-500">{{ group.route }}</small></td>
+                    @for (action of crudActions; track action.method) {
+                      <td class="px-3 py-2 text-center">
+                        @if (hasUserPermissionResource(group.resources, action.method)) {
+                          <input type="checkbox" class="h-4 w-4 accent-teal-700"
+                            [attr.aria-label]="action.label + ' ' + group.name + ' para ' + user.username"
+                            [checked]="userPermissionState(group.resources, action.method) === 'all'"
+                            [indeterminate]="userPermissionState(group.resources, action.method) === 'some'"
+                            [disabled]="user.status !== 'active' || savingPermissions()"
+                            (change)="setUserPermission(group.resources, action.method, $any($event.target).checked)" />
+                        }
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr><td class="px-3 py-6 text-center text-slate-500" colspan="5">No hay recursos activos para asignar.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (user.status !== 'active') { <p class="mt-3 text-sm text-amber-700">Activa el usuario para asignarle permisos directos.</p> }
+        </section>
+      }
+    }
+
+    @if (activeTab() === 'resources') {
+      <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+        <div class="mb-4"><h2 class="text-lg font-semibold">Recursos de MoviCab</h2>
+          <p class="text-sm text-slate-500">Cada recurso representa un método HTTP y una ruta protegida del API.</p></div>
+        <input class="security-control mb-3 w-full md:max-w-md" type="search" aria-label="Buscar recurso"
+          placeholder="Buscar por nombre, método o ruta..." [value]="resourceFilter()"
+          (input)="resourceFilter.set($any($event.target).value)" />
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50"><tr><th class="px-3 py-2">Recurso</th><th class="px-3 py-2">Método</th><th class="px-3 py-2">Ruta API</th><th class="px-3 py-2">Estado</th></tr></thead>
+            <tbody>
+              @for (resource of visibleResources(); track resource.id) {
+                <tr class="border-t border-slate-100"><td class="px-3 py-2 font-medium">{{ resourceGroupName(resource.route, resource.name) }}</td>
+                  <td class="px-3 py-2">{{ resource.method }}</td><td class="px-3 py-2 font-mono text-xs">{{ resource.route }}</td>
+                  <td class="px-3 py-2">{{ resource.status === 'active' ? 'Activo' : 'Inactivo' }}</td></tr>
+              } @empty {
+                <tr><td class="px-3 py-6 text-center text-slate-500" colspan="4">No hay recursos que coincidan.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+</div>
+
+<p-dialog [visible]="dialogVisible()" (visibleChange)="dialogVisible.set($event)" header="Crear usuario y asignar roles"
+  [modal]="true" [draggable]="false" [resizable]="false" styleClass="w-full max-w-4xl mx-4">
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-5">
+    <div class="grid gap-4 md:grid-cols-3">
+      <label class="grid gap-2 text-sm font-medium">Usuario<input class="security-control" formControlName="username" /></label>
+      <label class="grid gap-2 text-sm font-medium">Correo<input class="security-control" type="email" formControlName="email" /></label>
+      <label class="grid gap-2 text-sm font-medium">Contraseña<input class="security-control" type="password" formControlName="password" /></label>
+    </div>
+    <section class="grid gap-3">
+      <div class="flex items-center justify-between"><div><h2 class="font-semibold">Roles asignados</h2>
+        <p class="text-xs text-slate-500">Puedes administrar los permisos CRUD desde la pestaña Roles.</p></div>
+        <span class="text-xs text-slate-500">{{ selectedRoleIds().length }} seleccionados</span></div>
+      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        @for (role of roles(); track role.id) {
+          <label class="flex cursor-pointer items-start gap-2 rounded-lg border p-3" [class.border-teal-500]="selectedRoleIds().includes(role.id)">
+            <input type="checkbox" class="mt-1 accent-teal-700" [checked]="selectedRoleIds().includes(role.id)" (change)="toggleRole(role.id)" />
+            <span><strong class="block">{{ role.name }}</strong><small class="text-slate-500">{{ role.description || 'Sin descripción' }}</small></span>
+          </label>
+        }
+      </div>
+    </section>
+    <div class="flex justify-end gap-2">
+      <button pButton type="button" text severity="secondary" (click)="dialogVisible.set(false)">Cancelar</button>
+      <button pButton type="submit" [disabled]="saving()"><span pButtonLabel>{{ saving() ? 'Guardando...' : 'Guardar usuario' }}</span></button>
+    </div>
+  </form>
+</p-dialog>

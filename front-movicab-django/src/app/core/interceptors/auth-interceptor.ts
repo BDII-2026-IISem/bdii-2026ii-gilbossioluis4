@@ -1,10 +1,13 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap, tap } from 'rxjs/operators';
+import { catchError, finalize, shareReplay, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth';
+import { SessionStore } from '../services/session-store';
+import { TokenPair } from '../models/auth.model';
 
-let refreshInFlight: Observable<any> | null = null;
+let refreshInFlight: Observable<TokenPair> | null = null;
 
 export class AuthInterceptor {
   // Mantiene compatibilidad si se importa como clase o función
@@ -12,10 +15,13 @@ export class AuthInterceptor {
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const token = localStorage.getItem('access_token');
+  const session = inject(SessionStore);
+  const router = inject(Router);
+  const isAuthEndpoint = /\/auth\/(login|refresh|logout)\//.test(req.url);
+  const token = session.accessToken();
 
   let authReq = req;
-  if (token && !req.url.includes('/auth/login')) {
+  if (token && !isAuthEndpoint) {
     authReq = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` }
     });
@@ -23,21 +29,25 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/')) {
+      if (error.status === 401 && !isAuthEndpoint) {
         refreshInFlight ??= auth.refresh().pipe(
-          tap(() => {
+          catchError((refreshError: unknown) => {
+            session.clear();
+            void router.navigate(['/login']);
+            return throwError(() => refreshError);
+          }),
+          finalize(() => {
             refreshInFlight = null;
           }),
-          catchError((err) => {
-            refreshInFlight = null;
-            auth.logout();
-            return throwError(() => err);
-          })
+          shareReplay({ bufferSize: 1, refCount: false }),
         );
 
-        return refreshInFlight!.pipe(
+        return refreshInFlight.pipe(
           switchMap(() => {
-            const newToken = localStorage.getItem('access_token');
+            const newToken = session.accessToken();
+            if (!newToken) {
+              return throwError(() => error);
+            }
             const newReq = req.clone({
               setHeaders: { Authorization: `Bearer ${newToken}` }
             });

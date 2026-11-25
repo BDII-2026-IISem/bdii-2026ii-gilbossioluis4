@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { EffectivePermission, SessionUser, TokenPair } from '../models/auth.model';
+import { EffectivePermission, SessionUser } from '../models/auth.model';
 import { SessionStore } from './session-store';
 import { AuthService } from './auth';
 
-const PAR: TokenPair = { access: 'a1', refresh: 'r1', tokenType: 'Bearer', accessExpiresIn: 3600 };
+const PAR = { access: 'a1', refresh: 'r1', token_type: 'Bearer', access_expires_in: 3600 };
 const USER: SessionUser = { id: 1, username: 'admin', email: 'admin@movicab.test', avatar: null, status: 'active' };
 const PERMISO: EffectivePermission = { method: 'GET', path: '/api/clients', roleId: 1, roleName: 'ADMIN' };
 

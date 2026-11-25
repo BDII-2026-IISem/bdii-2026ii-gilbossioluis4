@@ -4,16 +4,15 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
-import { Client } from '../../../core/models/client.model';
-import { ClientApi } from '../client-api';
+import { Pasajero } from '../../../core/models/pasajero.model';
+import { PasajeroApi } from '../pasajero-api';
 import { NotificationService } from '../../../core/services/notification';
-import { ClientList } from './client-list';
+import { PasajeroList } from './client-list';
 
-const CLIENTE: Client = {
+const PASAJERO: Pasajero = {
   id: 1,
-  name: 'Ana Torres',
-  address: 'Calle 10 # 20-30',
-  phone: '3001234567',
+  nombre: 'Ana Torres',
+  descripcion: 'Frecuente',
   email: 'ana@movicab.test',
   status: 'active',
 };
@@ -21,15 +20,15 @@ const CLIENTE: Client = {
 describe('ClientList', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ClientList],
+      imports: [PasajeroList],
       providers: [
         ConfirmationService,
         MessageService,
         provideNoopAnimations(),
         providePrimeNG({ theme: { preset: Aura } }),
         {
-          provide: ClientApi,
-          useValue: { list: () => of([CLIENTE]) },
+          provide: PasajeroApi,
+          useValue: { list: () => of([PASAJERO]) },
         },
         {
           provide: NotificationService,
@@ -39,13 +38,14 @@ describe('ClientList', () => {
     }).compileComponents();
   }, 30000);
 
-  it('should render one row per client', async () => {
-    const fixture = TestBed.createComponent(ClientList);
+  it('should render one row per passenger', async () => {
+    const fixture = TestBed.createComponent(PasajeroList);
     fixture.detectChanges();
     await fixture.whenStable();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('tbody tr').length).toBe(1);
     expect(compiled.textContent).toContain('Ana Torres');
+    expect(compiled.textContent).toContain('Frecuente');
   }, 15000);
 });

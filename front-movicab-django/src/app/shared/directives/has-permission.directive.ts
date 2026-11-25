@@ -1,5 +1,5 @@
 import { Directive, TemplateRef, ViewContainerRef, effect, inject, input } from '@angular/core';
-import { SessionStore } from '../../core/services/session.store';
+import { SessionStore } from '../../core/services/session-store';
 
 @Directive({
   standalone: true,

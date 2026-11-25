@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { ClientForm } from './client-form';
-import { ClientPayload } from '../../../core/models/client.model';
+import { PasajeroForm } from './client-form';
+import { PasajeroPayload } from '../../../core/models/pasajero.model';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
@@ -8,7 +8,7 @@ import Aura from '@primeuix/themes/aura';
 describe('ClientForm', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ClientForm],
+      imports: [PasajeroForm],
       providers: [
         provideNoopAnimations(),
         providePrimeNG({ theme: { preset: Aura } }),
@@ -17,25 +17,23 @@ describe('ClientForm', () => {
   }, 30000);
 
   it('should emit saved with the trimmed body', async () => {
-    const fixture = TestBed.createComponent(ClientForm);
+    const fixture = TestBed.createComponent(PasajeroForm);
     fixture.detectChanges();
     await fixture.whenStable();
 
-    let body: ClientPayload | undefined;
+    let body: PasajeroPayload | undefined;
     fixture.componentInstance.saved.subscribe((p) => (body = p));
     fixture.componentInstance.form.setValue({
-      name: ' Ana Torres ',
-      phone: '',
+      nombre: ' Ana Torres ',
       email: '',
-      address: '',
+      descripcion: '',
     });
     fixture.componentInstance.submit();
 
     expect(body).toEqual({
-      name: 'Ana Torres',
-      phone: null,
+      nombre: 'Ana Torres',
       email: null,
-      address: null,
+      descripcion: null,
     });
   }, 15000);
 });

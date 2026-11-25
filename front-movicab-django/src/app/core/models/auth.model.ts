@@ -21,9 +21,16 @@ export interface SessionUser extends Timestamps {
   status: Status;
 }
 
+export interface ProfileUpdatePayload {
+  username?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export interface EffectivePermission {
   method: HttpMethod;
   path: string;
-  roleId: number;
-  roleName: string;
+  roleId: number | null;
+  roleName: string | null;
 }

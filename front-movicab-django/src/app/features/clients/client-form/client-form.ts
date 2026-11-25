@@ -4,42 +4,40 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
-import { Client, ClientPayload } from '../../../core/models/client.model';
+import { Pasajero, PasajeroPayload } from '../../../core/models/pasajero.model';
 
 @Component({
-  selector: 'app-client-form',
+  selector: 'app-pasajero-form',
   standalone: true,
   imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, TextareaModule],
   templateUrl: './client-form.html',
   styleUrl: './client-form.css',
   host: { class: 'block' },
 })
-export class ClientForm {
-  readonly client = input<Client | null>(null);
+export class PasajeroForm {
+  readonly pasajero = input<Pasajero | null>(null);
   readonly resetKey = input(0);
   readonly saving = input(false);
 
-  readonly saved = output<ClientPayload>();
+  readonly saved = output<PasajeroPayload>();
   readonly cancelled = output<void>();
 
   private readonly fb = inject(NonNullableFormBuilder);
 
   readonly form = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
-    phone: ['', [Validators.pattern(/^[0-9+()\s-]{7,30}$/)]],
+    nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
     email: ['', [Validators.email, Validators.maxLength(150)]],
-    address: ['', [Validators.maxLength(255)]],
+    descripcion: ['', [Validators.maxLength(255)]],
   });
 
   constructor() {
     effect(() => {
-      const current = this.client();
+      const current = this.pasajero();
       this.resetKey();
       this.form.reset({
-        name: current?.name ?? '',
-        phone: current?.phone ?? '',
+        nombre: current?.nombre ?? '',
         email: current?.email ?? '',
-        address: current?.address ?? '',
+        descripcion: current?.descripcion ?? '',
       });
     });
   }
@@ -51,10 +49,9 @@ export class ClientForm {
     }
     const value = this.form.getRawValue();
     this.saved.emit({
-      name: value.name.trim(),
-      phone: value.phone.trim() || null,
+      nombre: value.nombre.trim(),
       email: value.email.trim() || null,
-      address: value.address.trim() || null,
+      descripcion: value.descripcion.trim() || null,
     });
   }
 }

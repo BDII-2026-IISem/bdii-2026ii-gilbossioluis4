@@ -1,7 +1,7 @@
-<app-page-header title="Clientes / Pasajeros" subtitle="La baja es lógica: el cliente queda inactivo pero conserva su historial.">
+<app-page-header title="Pasajeros" subtitle="La baja es lógica y conserva el historial de carreras.">
   <p-tag [value]="rows().length + ' registros'" severity="info" [rounded]="true" />
   <button pButton type="button" (click)="openCreate()">
-    <i pButtonIcon class="pi pi-plus"></i><span pButtonLabel>Nuevo cliente</span>
+    <i pButtonIcon class="pi pi-plus"></i><span pButtonLabel>Nuevo pasajero</span>
   </button>
 </app-page-header>
 
@@ -22,8 +22,8 @@
       pInputText
       type="search"
       class="w-full"
-      aria-label="Buscar clientes"
-      placeholder="Buscar por nombre, email o teléfono…"
+      aria-label="Buscar pasajeros"
+      placeholder="Buscar por nombre, email o descripción..."
       [value]="filter()"
       (input)="filter.set($any($event.target).value)"
     />
@@ -31,27 +31,27 @@
 
   <ng-template #header>
     <tr>
-      <th pSortableColumn="name">Nombre <p-sort-icon field="name" /></th>
+      <th pSortableColumn="nombre">Nombre <p-sort-icon field="nombre" /></th>
       <th pSortableColumn="email">Contacto <p-sort-icon field="email" /></th>
       <th>Estado</th>
       <th class="w-32 text-right">Acciones</th>
     </tr>
   </ng-template>
 
-  <ng-template #body let-client>
+  <ng-template #body let-pasajero>
     <tr>
       <td>
-        <p class="font-medium text-slate-800">{{ client.name }}</p>
-        <p class="text-xs text-slate-400">#{{ client.id }}</p>
+        <p class="font-medium text-slate-800">{{ pasajero.nombre }}</p>
+        <p class="text-xs text-slate-400">#{{ pasajero.id }}</p>
       </td>
       <td>
-        <p class="text-sm text-slate-700">{{ client.email || '—' }}</p>
-        <p class="text-xs text-slate-400">{{ client.phone || 'Sin teléfono' }}</p>
+        <p class="text-sm text-slate-700">{{ pasajero.email || 'Sin correo' }}</p>
+        <p class="text-xs text-slate-400">{{ pasajero.descripcion || 'Sin descripción' }}</p>
       </td>
-      <td><app-status-tag [status]="client.status" /></td>
+      <td><app-status-tag [status]="pasajero.status" /></td>
       <td class="text-right">
-        <button pButton type="button" text rounded severity="secondary" icon="pi pi-pencil" aria-label="Editar cliente" pTooltip="Editar" (click)="openEdit(client)"></button>
-        <button pButton type="button" text rounded severity="danger" icon="pi pi-trash" aria-label="Dar de baja al cliente" pTooltip="Dar de baja" [disabled]="client.status === 'inactive'" (click)="remove(client)"></button>
+        <button pButton type="button" text rounded severity="secondary" icon="pi pi-pencil" aria-label="Editar pasajero" pTooltip="Editar" (click)="openEdit(pasajero)"></button>
+        <button pButton type="button" text rounded severity="danger" icon="pi pi-trash" aria-label="Dar de baja al pasajero" pTooltip="Dar de baja" [disabled]="pasajero.status === 'inactive'" (click)="remove(pasajero)"></button>
       </td>
     </tr>
   </ng-template>
@@ -60,9 +60,9 @@
     <tr>
       <td colspan="4">
         @if (filter()) {
-          <app-empty-state icon="pi pi-search" title="Sin coincidencias" message="Ningún cliente coincide. Borra el filtro para ver todos." />
+          <app-empty-state icon="pi pi-search" title="Sin coincidencias" message="Ningún pasajero coincide. Borra el filtro para ver todos." />
         } @else {
-          <app-empty-state icon="pi pi-users" title="Sin clientes" message="Crea el primero con «Nuevo cliente» o ejecuta el seeder en Django." />
+          <app-empty-state icon="pi pi-users" title="Sin pasajeros" message="Registra el primer pasajero o revisa los datos en Django." />
         }
       </td>
     </tr>
@@ -72,14 +72,14 @@
 <p-dialog
   [visible]="dialogVisible()"
   (visibleChange)="dialogVisible.set($event)"
-  [header]="editing() ? 'Editar cliente' : 'Nuevo cliente'"
+  [header]="editing() ? 'Editar pasajero' : 'Nuevo pasajero'"
   [modal]="true"
   [draggable]="false"
   [resizable]="false"
   styleClass="w-full max-w-2xl mx-4"
 >
-  <app-client-form
-    [client]="editing()"
+  <app-pasajero-form
+    [pasajero]="editing()"
     [saving]="saving()"
     [resetKey]="resetKey()"
     (saved)="save($event)"

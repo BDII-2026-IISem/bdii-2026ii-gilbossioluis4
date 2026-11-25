@@ -1,0 +1,208 @@
+<app-page-header [title]="definition.title" [subtitle]="definition.description">
+  @if (error()) {
+    <span class="text-sm text-red-700">Lista no disponible</span>
+  } @else {
+    <span class="text-sm text-slate-500">{{ rows().length }} registros</span>
+  }
+  @if (!definition.readOnly) {
+    <button pButton type="button" *appHasPermission="createPermission" (click)="openCreate()">
+      <i pButtonIcon class="pi pi-plus"></i>
+      <span pButtonLabel>Nuevo registro</span>
+    </button>
+  }
+</app-page-header>
+
+@if (error()) {
+  <p-message severity="error" styleClass="my-4 w-full">{{ error() }}</p-message>
+}
+
+<div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+  <input
+    class="domain-search"
+    type="search"
+    aria-label="Filtrar por nombre"
+    placeholder="Filtrar por nombre..."
+    [value]="filter()"
+    (input)="filter.set($any($event.target).value)"
+  />
+  @if (statusKey()) {
+    <select
+      class="domain-control w-auto min-w-40"
+      aria-label="Filtrar por estado"
+      [value]="statusFilter()"
+      (change)="statusFilter.set($any($event.target).value)"
+    >
+      <option value="all">Todos los estados</option>
+      @for (option of statusOptions(); track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  }
+  <select
+    class="domain-control w-auto min-w-40"
+    aria-label="Ordenar por nombre"
+    [value]="sortOrder()"
+    (change)="sortOrder.set($any($event.target).value)"
+  >
+    <option value="asc">Nombre: A–Z</option>
+    <option value="desc">Nombre: Z–A</option>
+  </select>
+  <button pButton type="button" outlined severity="secondary" icon="pi pi-refresh" aria-label="Actualizar lista" pTooltip="Actualizar" (click)="load()"></button>
+</div>
+
+<div class="mt-3 overflow-x-auto border-y border-slate-200">
+  <table class="w-full min-w-[42rem] border-collapse text-left text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600">
+      <tr>
+        @for (column of definition.columns; track column.key) {
+          <th class="whitespace-nowrap px-4 py-3">{{ column.label }}</th>
+        }
+        @if (!definition.readOnly) {
+          <th class="w-32 px-4 py-3 text-right">Acciones</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading()) {
+        <tr><td class="px-4 py-8 text-center text-slate-500" [attr.colspan]="definition.columns.length + (definition.readOnly ? 0 : 1)">Cargando registros...</td></tr>
+      } @else if (error()) {
+        <tr><td class="px-4 py-8 text-center text-slate-500" [attr.colspan]="definition.columns.length + (definition.readOnly ? 0 : 1)">No se pudo cargar la lista. Verifica los permisos y vuelve a actualizar.</td></tr>
+      } @else if (visibleRows().length === 0) {
+        <tr><td class="px-4 py-8 text-center text-slate-500" [attr.colspan]="definition.columns.length + (definition.readOnly ? 0 : 1)">No hay registros para mostrar.</td></tr>
+      } @else {
+        @for (row of visibleRows(); track row.id) {
+          <tr class="border-t border-slate-100 hover:bg-slate-50">
+            @for (column of definition.columns; track column.key) {
+              <td class="max-w-72 px-4 py-3 text-slate-700">
+                @if (isBoolean(row[column.key])) {
+                  <span class="inline-flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full" [class.bg-emerald-500]="row[column.key]" [class.bg-slate-300]="!row[column.key]"></span>
+                    {{ displayValue(row[column.key]) }}
+                  </span>
+                } @else {
+                  <span class="block truncate" [title]="displayValue(row[column.key], column)">{{ displayValue(row[column.key], column) }}</span>
+                }
+              </td>
+            }
+            @if (!definition.readOnly) {
+              <td class="whitespace-nowrap px-4 py-3 text-right">
+              @if (definition.path === 'carreras') {
+                <button pButton type="button" outlined rounded severity="info" icon="pi pi-eye" aria-label="Ver detalle del viaje" pTooltip="Ver detalle" (click)="showTripDetails(row)"></button>
+              }
+              @if (definition.path === 'carreras' && row['estado'] === 'ACEPTADA') {
+                <button *appHasPermission="careerStatusPermission" pButton type="button" outlined rounded severity="success" icon="pi pi-play" aria-label="Iniciar carrera" pTooltip="Iniciar" [disabled]="saving()" (click)="transitionCareer(row, 'EN_CURSO')"></button>
+              }
+              @if (definition.path === 'carreras' && row['estado'] === 'EN_CURSO') {
+                <button *appHasPermission="careerStatusPermission" pButton type="button" outlined rounded severity="success" icon="pi pi-check" aria-label="Finalizar carrera" pTooltip="Finalizar" [disabled]="saving()" (click)="transitionCareer(row, 'FINALIZADA')"></button>
+              }
+              @if (definition.path !== 'liquidaciones' && definition.path !== 'carreras') {
+                <button *appHasPermission="updatePermission" pButton type="button" outlined rounded severity="secondary" icon="pi pi-pencil" aria-label="Editar registro" pTooltip="Editar" (click)="openEdit(row)"></button>
+              }
+              <button *appHasPermission="deletePermission" pButton type="button" outlined rounded severity="danger" icon="pi pi-trash" aria-label="Dar de baja registro" pTooltip="Dar de baja" (click)="remove(row)"></button>
+              </td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<p-dialog
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [header]="editing() ? 'Editar ' + definition.title.toLocaleLowerCase() : 'Nuevo registro de ' + definition.title.toLocaleLowerCase()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-2xl mx-4"
+>
+  @if (dialogVisible()) {
+    <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-4">
+      @for (field of definition.fields; track field.key) {
+        @if (field.type === 'checkbox') {
+          <label class="flex items-center gap-3 py-1 text-sm font-medium text-slate-700">
+            <input type="checkbox" class="h-4 w-4 accent-teal-700" [formControl]="control(field)" />
+            {{ field.label }}
+          </label>
+        } @else {
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-slate-700" [for]="field.key">
+              {{ field.label }} @if (field.required) { <span class="text-red-600">*</span> }
+            </label>
+            @switch (field.type) {
+              @case ('textarea') {
+                <textarea [id]="field.key" rows="3" class="domain-control" [formControl]="control(field)"></textarea>
+              }
+              @case ('password') {
+                <input [id]="field.key" type="password" autocomplete="new-password" class="domain-control" [placeholder]="field.placeholder ?? ''" [formControl]="control(field)" />
+              }
+              @case ('number') {
+                <input [id]="field.key" type="number" [attr.step]="field.step ?? 0.01" min="0" class="domain-control" [formControl]="control(field)" />
+              }
+              @case ('datetime') {
+                <input [id]="field.key" type="datetime-local" class="domain-control" [formControl]="control(field)" />
+              }
+              @case ('select') {
+                <select [id]="field.key" class="domain-control" [formControl]="control(field)">
+                  <option value="">Seleccionar...</option>
+                  @for (option of fieldOptions(field); track option.id) {
+                    <option [value]="option.id">{{ optionLabel(field, option) }}</option>
+                  }
+                </select>
+              }
+              @case ('multiselect') {
+                <select [id]="field.key" multiple size="5" class="domain-control min-h-32" [formControl]="control(field)">
+                  @for (option of fieldOptions(field); track option.id) {
+                    <option [value]="option.id">{{ optionLabel(field, option) }}</option>
+                  }
+                </select>
+              }
+              @case ('state') {
+                <select [id]="field.key" class="domain-control" [formControl]="control(field)">
+                  <option value="ACEPTADA">Aceptada</option>
+                  <option value="EN_CURSO">En curso</option>
+                  <option value="FINALIZADA">Finalizada</option>
+                  <option value="CANCELADA">Cancelada</option>
+                </select>
+              }
+              @default {
+                <input [id]="field.key" type="text" class="domain-control" [placeholder]="field.placeholder ?? ''" [formControl]="control(field)" />
+              }
+            }
+            @if ((field.required || (field.requiredOnCreate && !editing())) && control(field).touched && control(field).invalid) {
+              <p class="text-xs text-red-700">Este campo es obligatorio.</p>
+            }
+          </div>
+        }
+      }
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+        <button pButton type="button" severity="secondary" outlined (click)="dialogVisible.set(false)"><span pButtonLabel>Cancelar</span></button>
+        <button pButton type="submit" [loading]="saving()"><i pButtonIcon class="pi pi-check"></i><span pButtonLabel>Guardar</span></button>
+      </div>
+    </form>
+  }
+</p-dialog>
+
+<p-dialog
+  [visible]="detailVisible()"
+  (visibleChange)="detailVisible.set($event)"
+  [header]="'Detalle del viaje #' + (selectedRecord()?.id ?? '')"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-3xl mx-4"
+>
+  @if (selectedRecord(); as record) {
+    <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+      @for (column of definition.columns; track column.key) {
+        <div class="min-w-0 border-b border-slate-100 pb-3">
+          <dt class="text-xs font-semibold uppercase text-slate-500">{{ column.label }}</dt>
+          <dd class="mt-1 break-words text-sm text-slate-800">{{ displayValue(record[column.key], column) }}</dd>
+        </div>
+      }
+    </dl>
+  }
+</p-dialog>
+
+<p-confirmdialog />
